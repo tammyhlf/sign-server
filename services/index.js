@@ -81,7 +81,7 @@ exports.postImport = async (filePath) => {
     '第二排座位号': 'second_seat'
   }
 
-  const insertPromises = jsonData.map(async (row) => {
+  for (const row of jsonData) {
     const mappedRow = {}
     for (const [key, value] of Object.entries(row)) {
       const mappedKey = headerMapping[key] // 将中文字段映射到英文
@@ -92,23 +92,56 @@ exports.postImport = async (filePath) => {
 
     const { name, first_seat, second_seat } = mappedRow // 使用映射后的字段
 
-    // 检查数据是否存在相同 name
-    const [existingRows] = await db.query(
-      'SELECT * FROM sign_table WHERE name = ?',
-      [name]
-    )
+    try {
+      // 检查数据是否存在相同 name
+      const [existingRows] = await db.query(
+        'SELECT * FROM sign_table WHERE name = ?',
+        [name]
+      )
 
-    if (existingRows.length > 0) {
-      if (existingRows[0].sign_status === 0) {
-        return db.query(
-          'UPDATE sign_table SET first_seat = ?, second_seat = ? WHERE name = ? AND sign_status = 0',
-          [first_seat, second_seat, name]
-        )
+      if (existingRows.length > 0) {
+        if (existingRows[0].sign_status === 0) {
+          await db.query(
+            'UPDATE sign_table SET first_seat = ?, second_seat = ? WHERE name = ? AND sign_status = 0',
+            [first_seat, second_seat, name]
+          )
+        }
+      } else {
+        await db.query('INSERT INTO sign_table (name, first_seat, second_seat) VALUES (?, ?, ?)', [name, first_seat, second_seat])
       }
-    } else {
-      return db.query('INSERT INTO sign_table (name, first_seat, second_seat) VALUES (?, ?, ?)', [name, first_seat, second_seat])
+    } catch (error) {
+      console.error(`Error processing row for ${name}:`, error)
     }
-  })
+  }
+
+  // const insertPromises = jsonData.map(async (row) => {
+  //   const mappedRow = {}
+  //   for (const [key, value] of Object.entries(row)) {
+  //     const mappedKey = headerMapping[key] // 将中文字段映射到英文
+  //     if (mappedKey) {
+  //       mappedRow[mappedKey] = value
+  //     }
+  //   }
+
+  //   const { name, first_seat, second_seat } = mappedRow // 使用映射后的字段
+
+  //   // 检查数据是否存在相同 name
+  //   const [existingRows] = await db.query(
+  //     'SELECT * FROM sign_table WHERE name = ?',
+  //     [name]
+  //   )
+
+  //   if (existingRows.length > 0) {
+  //     if (existingRows[0].sign_status === 0) {
+  //       return db.query(
+  //         'UPDATE sign_table SET first_seat = ?, second_seat = ? WHERE name = ? AND sign_status = 0',
+  //         [first_seat, second_seat, name]
+  //       )
+  //     }
+  //   } else {
+  //     return db.query('INSERT INTO sign_table (name, first_seat, second_seat) VALUES (?, ?, ?)', [name, first_seat, second_seat])
+  //   }
+  // })
 
   try {
     await Promise.all(insertPromises)
