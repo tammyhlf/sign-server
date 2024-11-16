@@ -40,10 +40,31 @@ exports.getSignList = async (req, res) => {
   }
 }
 
+// 搜索名单
+exports.getSearch = async (req, res) => {
+  const { name } = req.query
+  const data = await services.getSearch(name)
+
+  if (data.error) {
+    res.send({
+      code: 500,
+      data: [],
+      error: data.error,
+      msg: 'error'
+    })
+  } else {
+    res.send({
+      code: 200,
+      data,
+      msg: 'OK'
+    })
+  }
+}
+
 // 签到
 exports.postSign = async (req, res) => {
-  const { name } = req.body
-  const data = await services.postSign(name)
+  const { id } = req.body
+  const data = await services.postSign(id)
 
   if (data.error) {
     res.send({

@@ -30,8 +30,18 @@ exports.getSignList = async () => {
   }
 }
 
+// 搜索名单
+exports.getSearch = async (name) => {
+  try {
+    const data = await db.query(`SELECT * FROM sign_table WHERE name LIKE ? `, [`%${name.trim()}%`])
+    return data?.[0] || []
+  } catch (error) {
+    return { error }
+  }
+}
+
 // 签到
-exports.postSign = async (name) => {
+exports.postSign = async (id) => {
   try {
     // 查询最大 sign_in_number
     const data = await db.query(`
@@ -44,9 +54,9 @@ exports.postSign = async (name) => {
       UPDATE sign_table
       SET sign_status = 1,
           sign_in_number = ?
-      WHERE name = ? AND sign_status = 0
+      WHERE id = ? AND sign_status = 0
       LIMIT 1;
-    `, [sign_in_number + 1, name])
+    `, [sign_in_number + 1, id])
 
     return { }
   } catch (error) {

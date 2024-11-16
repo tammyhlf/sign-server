@@ -17,5 +17,7 @@ router.post('/upload', upload.single('file'), controllers.postImport)
 router.post('/sign', controllers.postSign)
 // 获取名单
 router.get('/sign', controllers.getSign)
+// 搜索名单
+router.get('/search', controllers.getSearch)
 
 module.exports = router
