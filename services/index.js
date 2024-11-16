@@ -106,8 +106,8 @@ exports.postImport = async ({ activityType, filePath }) => {
     try {
       // 检查数据是否存在相同 name
       const [existingRows] = await db.query(
-        'SELECT * FROM sign_table WHERE name = ? AND activity_type = ?',
-        [name, activityType]
+        'SELECT * FROM sign_table WHERE name = ? AND activity_type = ? AND seat = ?',
+        [name, activityType, seat]
       )
 
       if (existingRows.length > 0) {
