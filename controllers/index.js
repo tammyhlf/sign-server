@@ -105,8 +105,13 @@ exports.getSign = async (req, res) => {
 
 // 导入(在这里解析 excel,录入数据库)
 exports.postImport = async (req, res) => {
+  const { activityType } = req.body
+
   const filePath = req.file.path
-  const data = await services.postImport(filePath)
+  const data = await services.postImport({
+    activityType,
+    filePath
+  })
   
   if (data.error) {
     res.send({

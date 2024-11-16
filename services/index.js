@@ -79,96 +79,49 @@ exports.getSign = async (name) => {
 }
 
 // 导入
-exports.postImport = async (filePath) => {
+exports.postImport = async ({ activityType, filePath }) => {
+  const activityName = String(activityType) === '1' ? '筹款致敬答谢活动' : '交流会活动'
   const workbook = xlsx.readFile(filePath);
 
-  const sheets = [workbook.SheetNames[0]];
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+  const jsonData = xlsx.utils.sheet_to_json(worksheet);
 
-  // const sheetName = workbook.SheetNames[0];
-  // const worksheet = workbook.Sheets[sheetName];
-  // const jsonData = xlsx.utils.sheet_to_json(worksheet);
+  const headerMapping = {
+    '姓名': 'name',
+    '座位号': 'seat',
+  }
 
-  // const headerMapping = {
-  //   '姓名': 'name',
-  //   '第一排座位号': 'first_seat',
-  //   '第二排座位号': 'second_seat'
-  // }
-
-  // for (const row of jsonData) {
-  //   const mappedRow = {}
-  //   for (const [key, value] of Object.entries(row)) {
-  //     const mappedKey = headerMapping[key] // 将中文字段映射到英文
-  //     if (mappedKey) {
-  //       mappedRow[mappedKey] = value
-  //     }
-  //   }
-
-  //   const { name, first_seat, second_seat } = mappedRow // 使用映射后的字段
-
-  //   try {
-  //     // 检查数据是否存在相同 name
-  //     const [existingRows] = await db.query(
-  //       'SELECT * FROM sign_table WHERE name = ?',
-  //       [name]
-  //     )
-
-  //     if (existingRows.length > 0) {
-  //       if (existingRows[0].sign_status === 0) {
-  //         await db.query(
-  //           'UPDATE sign_table SET first_seat = ?, second_seat = ? WHERE name = ? AND sign_status = 0',
-  //           [first_seat, second_seat, name]
-  //         )
-  //       }
-  //     } else {
-  //       await db.query('INSERT INTO sign_table (name, first_seat, second_seat) VALUES (?, ?, ?)', [name, first_seat, second_seat])
-  //     }
-  //   } catch (error) {
-  //     console.error(`Error processing row for ${name}:`, error)
-  //   }
-  // }
-
-  for (let i = 0; i < sheets.length; i ++) {
-    const sheetName = workbook.SheetNames[i];
-    const worksheet = workbook.Sheets[sheetName];
-    const jsonData = xlsx.utils.sheet_to_json(worksheet);
-
-    const seatKey = sheetName === '未签到名单1场1层' ? 'first_seat' : 'second_seat'
-    const headerMapping = {
-      '姓名': 'name',
-      '座位号': seatKey
+  for (const row of jsonData) {
+    const mappedRow = {}
+    for (const [key, value] of Object.entries(row)) {
+      const mappedKey = headerMapping[key] // 将中文字段映射到英文
+      if (mappedKey) {
+        mappedRow[mappedKey] = value
+      }
     }
-  
-    for (const row of jsonData) {
-      const mappedRow = {}
-      for (const [key, value] of Object.entries(row)) {
-        const mappedKey = headerMapping[key] // 将中文字段映射到英文
-        if (mappedKey) {
-          mappedRow[mappedKey] = value
+
+    const { name, seat } = mappedRow // 使用映射后的字段
+
+    try {
+      // 检查数据是否存在相同 name
+      const [existingRows] = await db.query(
+        'SELECT * FROM sign_table WHERE name = ? AND activity_type = ?',
+        [name, activityType]
+      )
+
+      if (existingRows.length > 0) {
+        if (existingRows[0].sign_status === 0) {
+          await db.query(
+            'UPDATE sign_table SET seat = ? WHERE name = ? AND activity_type = ? AND sign_status = 0',
+            [seat, name, activityType]
+          )
         }
+      } else {
+        await db.query('INSERT INTO sign_table (name, seat, activity_type, activity_name) VALUES (?, ?, ?, ?)', [name, seat, activityType, activityName])
       }
-  
-      const { name, first_seat, second_seat } = mappedRow // 使用映射后的字段
-  
-      try {
-        // 检查数据是否存在相同 name
-        const [existingRows] = await db.query(
-          'SELECT * FROM sign_table WHERE name = ?',
-          [name]
-        )
-  
-        if (existingRows.length > 0) {
-          if (existingRows[0].sign_status === 0) {
-            await db.query(
-              'UPDATE sign_table SET first_seat = ?, second_seat = ? WHERE name = ? AND sign_status = 0',
-              [first_seat, second_seat, name]
-            )
-          }
-        } else {
-          await db.query('INSERT INTO sign_table (name, first_seat, second_seat) VALUES (?, ?, ?)', [name, first_seat, second_seat])
-        }
-      } catch (error) {
-        console.error(`Error processing row for ${name}:`, error)
-      }
+    } catch (error) {
+      console.error(`Error processing row for ${name}:`, error)
     }
   }
 
