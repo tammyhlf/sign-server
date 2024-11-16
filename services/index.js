@@ -33,6 +33,9 @@ exports.getSignList = async () => {
 // 搜索名单
 exports.getSearch = async (name) => {
   try {
+    if (!name?.trim()) {
+      return []
+    }
     const data = await db.query(`SELECT * FROM sign_table WHERE name LIKE ? `, [`%${name.trim()}%`])
     return data?.[0] || []
   } catch (error) {
@@ -103,25 +106,27 @@ exports.postImport = async ({ activityType, filePath }) => {
 
     const { name, seat } = mappedRow // 使用映射后的字段
 
+    const filterName = name.replace(/\s+/g, ''); ;
+
     try {
       // 检查数据是否存在相同 name
       const [existingRows] = await db.query(
         'SELECT * FROM sign_table WHERE name = ? AND activity_type = ? AND seat = ?',
-        [name, activityType, seat]
+        [filterName, activityType, seat]
       )
 
       if (existingRows.length > 0) {
         if (existingRows[0].sign_status === 0) {
           await db.query(
             'UPDATE sign_table SET seat = ? WHERE name = ? AND activity_type = ? AND sign_status = 0',
-            [seat, name, activityType]
+            [seat, filterName, activityType]
           )
         }
       } else {
-        await db.query('INSERT INTO sign_table (name, seat, activity_type, activity_name) VALUES (?, ?, ?, ?)', [name, seat, activityType, activityName])
+        await db.query('INSERT INTO sign_table (name, seat, activity_type, activity_name) VALUES (?, ?, ?, ?)', [filterName, seat, activityType, activityName])
       }
     } catch (error) {
-      console.error(`Error processing row for ${name}:`, error)
+      console.error(`Error processing row for ${filterName}:`, error)
     }
   }
 
